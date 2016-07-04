@@ -1,0 +1,25 @@
+
+frontend {{ item.name }}
+	bind {{ item.bind }}
+{% if item.acls is defined %}
+{% for acl in item.acls %}
+	acl {{ acl.name }} {{ acl.condition }}
+{% endfor %}
+{% endif %}
+
+{%- if item.extra_params is defined %}
+{% for params in item.extra_params %}
+	{{ params }}
+{% endfor %}
+{% endif %}
+
+{%- if item.backends is defined %}
+{% for backend in item.backends %}
+	use_backend {{ backend.name }} if {% if backend.domain is defined %}{ hdr(Host) -i {{ backend.domain }} }{% else %}{{ backend.condition }}{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{%- if item.default_backend is defined  %}
+	default_backend {{ item.default_backend }}
+{% endif %}

@@ -1,0 +1,75 @@
+---
+- name: Include installation tasks (Debian)
+  include: install-debian.yml
+  when: ansible_distribution == 'Debian'
+  tags: haproxy, install, haproxy:install
+
+- name: Include installation tasks (Ubuntu)
+  include: install-ubuntu.yml
+  when: ansible_distribution == 'Ubuntu'
+  tags: haproxy, install, haproxy:install
+
+- name: Create config directory
+  file: path={{ haproxy_config_dir }} state=directory
+  tags: haproxy, install, haproxy:install
+
+- name: List files in config directory
+  command: "ls {{ haproxy_config_dir }}"
+  register: confdir
+  changed_when: false
+
+- name: Delete old config files
+  file: path={{ item }} state=absent
+  with_items: |-
+    {%- set comma = joiner(",") -%}
+    [{% for file in confdir.stdout_lines %}
+      {%- set confname = file[3:-4] %}
+      {%- if confname != "main" %}
+      {%- if confname not in haproxy_backends|map(attribute='name') %}
+      {%- if confname not in haproxy_frontends|map(attribute='name') %}
+        {{ comma() }}"{{ haproxy_config_dir+'/'+file }}"
+      {%- endif %}
+      {%- endif %}
+      {%- endif %}
+    {%- endfor %}]
+  when: haproxy_clear_config == true
+
+- name: Copy default/global config file
+  copy:
+    src: "{{ haproxy_config_file }}"
+    dest: /etc/haproxy/conf.d/00-main.cfg
+    mode: 0644
+  tags: haproxy, configure, haproxy:configure
+
+- name: Configure frontends
+  template:
+    src: frontend.cfg.j2
+    dest: "/etc/haproxy/conf.d/01-{{ item.name }}.cfg"
+  with_items: "{{ haproxy_frontends }}"
+  tags: haproxy, configure, haproxy:configure
+
+- name: Configure backends
+  template:
+    src: backend.cfg.j2
+    dest: "/etc/haproxy/conf.d/02-{{ item.name }}.cfg"
+  with_items: "{{ haproxy_backends }}"
+  when: (haproxy_backends | length) > 0
+  tags: haproxy, configure, haproxy:configure
+
+- name: Assemble config file
+  assemble:
+    src: /etc/haproxy/conf.d
+    dest: /etc/haproxy/haproxy.cfg
+    mode: 0644
+  tags: haproxy, configure, haproxy:configure
+  notify: Restart HAProxy
+
+- name: Separate log files
+  template:
+    src: rsyslog.conf.j2
+    dest: /etc/rsyslog.d/49-haproxy.conf
+  notify: Restart rsyslog
+
+- name: Start and enable HAProxy
+  service: name=haproxy state=started enabled=yes
+  tags: haproxy, configure, haproxy:configure

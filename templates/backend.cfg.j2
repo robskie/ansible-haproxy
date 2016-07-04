@@ -1,0 +1,18 @@
+
+backend {{ item.name }}
+{% if item.balance is defined %}
+	balance {{ item.balance }}
+{% endif %}
+
+{%- if item.extra_params is defined %}
+{% for param in item.extra_params %}
+	{{ param }}
+{% endfor %}
+{% endif %}
+
+{%- if item.servers is defined %}
+{% for server in item.servers %}
+	server {{ server.name }} {{ server.address }}{% if server.check is defined and server.check %} check{% endif %}{% if server.extra_params is defined %}{% for param in server.extra_params %} {{ param }}{% endfor %}{% endif %}
+
+{% endfor %}
+{% endif %}

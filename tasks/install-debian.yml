@@ -1,0 +1,20 @@
+---
+- name: Get apt keys
+  apt_key:
+    url: https://haproxy.debian.net/bernat.debian.org.gpg
+    state: present
+
+- name: Add repository
+  apt_repository:
+    repo: "{{ item }}"
+    state: present
+    update_cache: yes
+  with_items:
+      - "deb http://ftp.debian.org/debian {{ ansible_distribution_release }}-backports main"
+      - "deb http://haproxy.debian.net {{ ansible_distribution_release }}-backports-{{ haproxy_version }} main"
+
+- name: Install HAProxy
+  apt:
+    name: haproxy
+    state: latest
+    default_release: "{{ ansible_distribution_release }}-backports-{{ haproxy_version }}"

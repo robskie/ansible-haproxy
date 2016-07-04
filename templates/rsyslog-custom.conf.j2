@@ -1,0 +1,37 @@
+# Create an additional socket in haproxy's chroot in order to allow logging via
+# /dev/log to chroot'ed HAProxy processes
+$AddUnixListenSocket /var/lib/haproxy/dev/log
+
+{#- Get old backends #}
+{% set old_backends = [] %}
+{% if haproxy_clear_config == false %}
+  {%- for file in confdir.stdout_lines if file[0:2] == "02" %}
+    {%- set backend = file[3:-4] %}
+    {%- if backend not in haproxy_backends|map(attribute='name') %}
+      {%- if old_backends.append(backend) %}{% endif %}
+    {%- endif %}
+  {%- endfor %}
+{% endif %}
+
+{# Combine old and new backends #}
+{% set backends = old_backends + haproxy_backends|map(attribute='name')|list %}
+
+{% if backends|length > 0 %}
+{% for backend in backends %}
+if $programname startswith 'haproxy' and \
+$msg contains ' {{ backend }}' and $syslogseverity == 6 \
+then /var/log/haproxy/{{ backend }}.log
+&~
+
+{% endfor %}
+{% endif -%}
+
+# Send all errors to errors.log
+if $programname startswith 'haproxy' and $syslogseverity <= 3 \
+then /var/log/haproxy/errors.log
+&~
+
+# Send warning, notice, and debug logs to haproxy.log
+if $programname startswith 'haproxy' and $syslogseverity != 6 \
+then /var/log/haproxy/haproxy.log
+&~

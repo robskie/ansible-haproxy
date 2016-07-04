@@ -1,0 +1,45 @@
+---
+- hosts: all
+  sudo: yes
+  roles:
+    - role: ansible-haproxy
+      haproxy_version: 1.6
+      haproxy_separate_logs: yes
+      haproxy_clear_config: yes
+      haproxy_frontends:
+      - name: www-http
+        bind: '*:80'
+        default_backend: no-match
+        acls:
+          - name: host-example
+            condition: hdr(host) -i example.com
+        backends:
+          - name: example.com
+            condition: host-example
+          - name: another.example.com
+            domain: another.example.com
+        extra_params:
+          - 'capture request header User-Agent len 200'
+      haproxy_backends:
+      - name: no-match
+        extra_params:
+          - 'errorfile 504 /etc/haproxy/errors/504.http'
+      - name: example.com
+        balance: roundrobin
+        servers:
+          - name: svr1
+            address: localhost:8080
+            check: yes
+            extra_params:
+              - fall 5
+          - name: svr2
+            address: localhost:8081
+            check: yes
+        extra_params:
+          - 'option httpchk GET /'
+          - 'http-check expect status 200'
+      - name: another.example.com
+        servers:
+          - name: svr1
+            address: localhost:8082
+            check: no

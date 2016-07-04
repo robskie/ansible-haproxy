@@ -1,0 +1,5 @@
+{% if haproxy_separate_logs == false %}
+  {%- include "rsyslog-default.conf.j2" %}
+{% else %}
+  {%- include "rsyslog-custom.conf.j2" %}
+{% endif %}

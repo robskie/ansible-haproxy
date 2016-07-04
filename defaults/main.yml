@@ -1,0 +1,8 @@
+---
+haproxy_version: 1.6
+haproxy_clear_config: no
+haproxy_separate_logs: no
+haproxy_backends: []
+haproxy_frontends: []
+haproxy_config_dir: /etc/haproxy/conf.d
+haproxy_config_file: haproxy-default.cfg
