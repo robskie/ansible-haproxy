@@ -1,7 +1,12 @@
 # Ansible Role: HAProxy
+[![Build Status](https://travis-ci.org/robskie/ansible-haproxy.svg?branch=master)][1]
+[![Ansible Galaxy](https://img.shields.io/badge/ansible--galaxy-haproxy-blue.svg)][2]
 
 This role installs and configures HAProxy versions `1.5` and `1.6`. Tested on
 Debian and Ubuntu Linux distributions.
+
+[1]: https://travis-ci.org/robskie/ansible-haproxy
+[2]: https://galaxy.ansible.com/robskie/haproxy/
 
 ## Requirements
 
