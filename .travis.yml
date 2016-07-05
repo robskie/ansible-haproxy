@@ -1,0 +1,54 @@
+---
+sudo: required
+language: python
+python: "2.7"
+
+# Install ansible
+addons:
+  apt:
+    packages:
+    - python-pip
+  hosts:
+    - example.com
+    - another.example.com
+
+install:
+  # Install ansible
+  - pip install ansible
+
+  # Check ansible version
+  - ansible --version
+
+  # Create ansible.cfg with correct roles_path
+  - printf '[defaults]\nroles_path=../' >ansible.cfg
+
+before_script:
+  # Start test web servers
+  - python -m SimpleHTTPServer 8080 > /dev/null 2>&1 &
+  - python -m SimpleHTTPServer 8081 > /dev/null 2>&1 &
+  - python -m SimpleHTTPServer 8082 > /dev/null 2>&1 &
+
+script:
+  # Basic role syntax check
+  - ansible-playbook tests/test.yml -i tests/inventory --syntax-check
+
+  # Run the role/playbook with ansible-playbook.
+  - ansible-playbook -i tests/inventory tests/test.yml --connection=local
+
+  # Run the role/playbook again, checking to make sure it's idempotent.
+  - >
+    ansible-playbook -i tests/inventory tests/test.yml --connection=local
+    | grep -q 'changed=0.*failed=0'
+    && (echo 'Idempotence test: pass' && exit 0)
+    || (echo 'Idempotence test: fail' && exit 1)
+
+  # Test backends
+  - curl --fail http://example.com > /dev/null 2>&1
+  - curl --fail http://another.example.com > /dev/null 2>&1
+
+  # Test logs
+  - sudo grep -q "\sexample.com" /var/log/haproxy/example.com.log
+  - sudo grep -q "\sanother.example.com" /var/log/haproxy/another.example.com.log
+
+notifications:
+  webhooks: https://galaxy.ansible.com/api/v1/notifications/
