@@ -8,7 +8,7 @@ $AddUnixListenSocket /var/lib/haproxy/dev/log
   {%- for file in confdir.stdout_lines if file[0:2] == "02" %}
     {%- set backend = file[3:-4] %}
     {%- if backend not in haproxy_backends|map(attribute='name') %}
-      {%- if old_backends.append(backend) %}{% endif %}
+      {%- set _ = old_backends.append(backend) %}
     {%- endif %}
   {%- endfor %}
 {% endif %}

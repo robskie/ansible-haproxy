@@ -14,21 +14,21 @@
   tags: haproxy, install, haproxy:install
 
 - name: List files in config directory
-  command: "ls {{ haproxy_config_dir }}"
+  command: "ls -1 {{ haproxy_config_dir }}"
   register: confdir
   changed_when: false
   tags: haproxy, configure, haproxy:configure
 
 - name: Delete old config files
   file: path={{ item }} state=absent
-  with_items: |-
+  with_items: >-
     {%- set comma = joiner(",") -%}
     [{% for file in confdir.stdout_lines %}
       {%- set confname = file[3:-4] %}
       {%- if confname != "main" %}
       {%- if confname not in haproxy_backends|map(attribute='name') %}
       {%- if confname not in haproxy_frontends|map(attribute='name') %}
-        {{ comma() }}"{{ haproxy_config_dir+'/'+file }}"
+        {{ comma() }}"{{ haproxy_config_dir+file }}"
       {%- endif %}
       {%- endif %}
       {%- endif %}
@@ -43,19 +43,19 @@
     mode: 0644
   tags: haproxy, configure, haproxy:configure
 
-- name: Configure frontends
+- name: Create frontend fragments
   template:
     src: frontend.cfg.j2
     dest: "/etc/haproxy/conf.d/01-{{ item.name }}.cfg"
   with_items: "{{ haproxy_frontends }}"
   tags: haproxy, configure, haproxy:configure
 
-- name: Configure backends
+- name: Create backend fragments
   template:
     src: backend.cfg.j2
     dest: "/etc/haproxy/conf.d/02-{{ item.name }}.cfg"
   with_items: "{{ haproxy_backends }}"
-  when: (haproxy_backends | length) > 0
+  when: haproxy_backends|length > 0
   tags: haproxy, configure, haproxy:configure
 
 - name: Assemble config file
@@ -63,7 +63,6 @@
     src: /etc/haproxy/conf.d
     dest: /etc/haproxy/haproxy.cfg
     mode: 0644
-  tags: haproxy, configure, haproxy:configure
   notify: Restart HAProxy
   tags: haproxy, configure, haproxy:configure
 
