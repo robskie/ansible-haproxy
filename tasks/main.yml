@@ -17,6 +17,7 @@
   command: "ls {{ haproxy_config_dir }}"
   register: confdir
   changed_when: false
+  tags: haproxy, configure, haproxy:configure
 
 - name: Delete old config files
   file: path={{ item }} state=absent
@@ -33,6 +34,7 @@
       {%- endif %}
     {%- endfor %}]
   when: haproxy_clear_config == true
+  tags: haproxy, configure, haproxy:configure
 
 - name: Copy default/global config file
   copy:
@@ -63,12 +65,14 @@
     mode: 0644
   tags: haproxy, configure, haproxy:configure
   notify: Restart HAProxy
+  tags: haproxy, configure, haproxy:configure
 
 - name: Separate log files
   template:
     src: rsyslog.conf.j2
     dest: /etc/rsyslog.d/49-haproxy.conf
   notify: Restart rsyslog
+  tags: haproxy, configure, haproxy:configure
 
 - name: Start and enable HAProxy
   service: name=haproxy state=started enabled=yes
