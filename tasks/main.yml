@@ -10,7 +10,12 @@
   tags: haproxy, install, haproxy:install
 
 - name: Create config directory
-  file: path={{ haproxy_config_dir }} state=directory
+  file:
+    path: "{{ haproxy_config_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
   tags: haproxy, install, haproxy:install
 
 - name: List files in config directory
@@ -40,6 +45,8 @@
   copy:
     src: "{{ haproxy_config_file }}"
     dest: /etc/haproxy/conf.d/00-main.cfg
+    owner: root
+    group: root
     mode: 0644
   tags: haproxy, configure, haproxy:configure
 
@@ -47,6 +54,9 @@
   template:
     src: frontend.cfg.j2
     dest: "/etc/haproxy/conf.d/01-{{ item.name }}.cfg"
+    owner: root
+    group: root
+    mode: 0644
   with_items: "{{ haproxy_frontends }}"
   tags: haproxy, configure, haproxy:configure
 
@@ -54,6 +64,9 @@
   template:
     src: backend.cfg.j2
     dest: "/etc/haproxy/conf.d/02-{{ item.name }}.cfg"
+    owner: root
+    group: root
+    mode: 0644
   with_items: "{{ haproxy_backends }}"
   when: haproxy_backends|length > 0
   tags: haproxy, configure, haproxy:configure
@@ -62,12 +75,19 @@
   assemble:
     src: /etc/haproxy/conf.d
     dest: /etc/haproxy/haproxy.cfg
+    owner: root
+    group: root
     mode: 0644
   notify: Restart HAProxy
   tags: haproxy, configure, haproxy:configure
 
 - name: Separate log files
-  template: src={{ item.src }} dest={{ item.dest }} mode=0644
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: 0644
   notify: Restart rsyslog
   with_items:
     - { src: rsyslog.conf.j2, dest: /etc/rsyslog.d/49-haproxy.conf }
