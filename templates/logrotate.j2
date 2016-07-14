@@ -1,0 +1,19 @@
+{% if haproxy_separate_logs == false %}
+/var/log/haproxy.log {
+{% else %}
+/var/log/haproxy/*.log {
+{% endif %}
+    daily
+    rotate 52
+    missingok
+    notifempty
+    compress
+    delaycompress
+{%  if ansible_distribution == 'Ubuntu' %}
+    create 640 syslog adm
+{%  endif %}
+    sharedscripts
+    postrotate
+        kill -HUP $(cat /var/run/rsyslogd.pid 2>/dev/null) 2>/dev/null || true
+    endscript
+}

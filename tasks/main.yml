@@ -67,10 +67,11 @@
   tags: haproxy, configure, haproxy:configure
 
 - name: Separate log files
-  template:
-    src: rsyslog.conf.j2
-    dest: /etc/rsyslog.d/49-haproxy.conf
+  template: src={{ item.src }} dest={{ item.dest }} mode=0644
   notify: Restart rsyslog
+  with_items:
+    - { src: rsyslog.conf.j2, dest: /etc/rsyslog.d/49-haproxy.conf }
+    - { src: logrotate.j2, dest: /etc/logrotate.d/haproxy }
   tags: haproxy, configure, haproxy:configure
 
 - name: Start and enable HAProxy
