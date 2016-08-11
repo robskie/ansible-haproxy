@@ -13,6 +13,19 @@
       - "deb http://ftp.debian.org/debian {{ ansible_distribution_release }}-backports main"
       - "deb http://haproxy.debian.net {{ ansible_distribution_release }}-backports-{{ haproxy_version }} main"
 
+- name: Install dependencies
+  apt:
+    name: "{{ item }}"
+    state: latest
+    default_release: "{{ ansible_distribution_release }}-backports"
+  with_items:
+    - libc6
+    - libpcre3
+    - libssl1.0.0
+    - zlib1g
+    - init-system-helpers
+    - adduser
+
 - name: Install HAProxy
   apt:
     name: haproxy
