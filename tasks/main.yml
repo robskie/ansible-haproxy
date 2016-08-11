@@ -29,7 +29,10 @@
   with_items: >-
     {%- set comma = joiner(",") -%}
     [{% for file in confdir.stdout_lines %}
-      {%- set confname = file[3:-4] %}
+      {%- set confname = file[3:-4] -%}
+      {%- if file.split('.')[-1] != 'cfg' -%}
+      {%- set confname = file -%}
+      {%- endif -%}
       {%- if confname != "main" %}
       {%- if confname not in haproxy_backends|map(attribute='name') %}
       {%- if confname not in haproxy_frontends|map(attribute='name') %}
@@ -44,16 +47,72 @@
 - name: Copy default/global config file
   copy:
     src: "{{ haproxy_config_file }}"
-    dest: /etc/haproxy/conf.d/00-main.cfg
+    dest: "{{ haproxy_config_dir }}00-main.cfg"
     owner: root
     group: root
     mode: 0644
   tags: haproxy, configure, haproxy:configure
 
-- name: Create frontend fragments
+- name: Create frontend fragment directories
+  file:
+    path: "{{ haproxy_config_dir }}{{ item.name }}"
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+  with_items: "{{ haproxy_frontends }}"
+  tags: haproxy, configure, haproxy:configure
+
+- name: Create frontend fragments (main)
   template:
-    src: frontend.cfg.j2
-    dest: "/etc/haproxy/conf.d/01-{{ item.name }}.cfg"
+    src: frontend-main.cfg.j2
+    dest: "{{ haproxy_config_dir }}{{ item.name }}/00-main.cfg"
+    owner: root
+    group: root
+    mode: 0644
+  with_items: "{{ haproxy_frontends }}"
+  tags: haproxy, configure, haproxy:configure
+
+- name: Create frontend fragments (acl)
+  template:
+    src: frontend-acl.cfg.j2
+    dest: "{{ haproxy_config_dir }}{{ item.0.name }}/01-{{ item.1.name }}.cfg"
+    owner: root
+    group: root
+    mode: 0644
+  with_subelements:
+    - "{{ haproxy_frontends|selectattr('acls', 'defined')|list }}"
+    - acls
+  tags: haproxy, configure, haproxy:configure
+
+- name: Create frontend fragments (backend)
+  template:
+    src: frontend-backend.cfg.j2
+    dest: "{{ haproxy_config_dir }}{{ item.0.name }}/03-{{ item.1.name }}.cfg"
+    owner: root
+    group: root
+    mode: 0644
+  with_subelements:
+    - "{{ haproxy_frontends|selectattr('backends', 'defined')|list }}"
+    - backends
+  tags: haproxy, configure, haproxy:configure
+
+- name: Create frontend fragments (extra)
+  template:
+    src: frontend-extra.cfg.j2
+    dest: "{{ haproxy_config_dir }}{{ item.0.name }}/02-extra-{{ item.1|hash('sha1') }}.cfg"
+    owner: root
+    group: root
+    mode: 0644
+  with_subelements:
+    - "{{ haproxy_frontends|selectattr('extra_params', 'defined')|list }}"
+    - extra_params
+  tags: haproxy, configure, haproxy:configure
+
+- name: Assemble frontend fragments
+  assemble:
+    src: "{{ haproxy_config_dir }}{{ item.name }}"
+    dest: "{{ haproxy_config_dir }}01-{{ item.name }}.cfg"
     owner: root
     group: root
     mode: 0644
@@ -63,7 +122,7 @@
 - name: Create backend fragments
   template:
     src: backend.cfg.j2
-    dest: "/etc/haproxy/conf.d/02-{{ item.name }}.cfg"
+    dest: "{{ haproxy_config_dir }}02-{{ item.name }}.cfg"
     owner: root
     group: root
     mode: 0644
@@ -73,7 +132,7 @@
 
 - name: Assemble config file
   assemble:
-    src: /etc/haproxy/conf.d
+    src: "{{ haproxy_config_dir }}"
     dest: /etc/haproxy/haproxy.cfg
     owner: root
     group: root

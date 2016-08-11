@@ -1,0 +1,6 @@
+
+frontend {{ item.name }}
+	bind {{ item.bind }}
+{% if item.default_backend is defined %}
+	default_backend {{ item.default_backend }}
+{% endif %}
